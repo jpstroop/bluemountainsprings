@@ -133,3 +133,41 @@ function springs:text($issueid) {
     let $transcription := collection($springs:transcriptions)//tei:TEI[./tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid'] = 'urn:PUL:bluemountain:' || $issueid]
         return transform:transform($transcription, $xsl, ())
 };
+
+declare function springs:constituents-with-byline($byline as xs:string)
+as element()*
+{
+    collection($springs:transcriptions)//tei:relatedItem[ft:query(.//tei:persName, $byline)]
+};
+
+declare
+ %rest:GET
+ %rest:path("springs/constituents2")
+ %rest:query-param("byline", "{$byline}")
+function springs:constituents-by-byline($byline) {
+    let $constituents := springs:constituents-with-byline($byline)
+    let $constituents-old := collection($springs:transcriptions)//tei:relatedItem[@type='constituent' and ft:query(.//tei:persName, $byline)]
+    return
+        <tei:TEI>
+            <tei:teiHeader>
+            <tei:fileDesc>
+            <tei:titleStmt>
+            <tei:title>later</tei:title>
+            <tei:author>{ $byline } </tei:author>
+            </tei:titleStmt>
+            <tei:publicationStmt>generated {count($constituents)} hits from {$springs:transcriptions}</tei:publicationStmt>
+            </tei:fileDesc>
+            </tei:teiHeader>
+            <tei:text>
+            <tei:body>
+            {
+                for $hit in $constituents
+                let $cid := $hit/@xml:id
+                let $div := $hit/ancestor::tei:TEI//tei:div[@corresp = $cid]
+                return $div
+            }
+
+        </tei:body>
+        </tei:text>
+        </tei:TEI>
+ };
