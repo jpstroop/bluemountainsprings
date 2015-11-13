@@ -29,7 +29,10 @@ declare variable $config:app-root :=
         substring-before($modulePath, "/modules")
 ;
 
-declare variable $config:data-root := $config:app-root || "/data";
+declare variable $config:data-root        as xs:string { "/db/bluemtn" };
+declare variable $config:metadata        as xs:string { $config:data-root || "/metadata" };
+declare variable $config:transcriptions  as xs:string { $config:data-root || "/transcriptions" };
+
 
 declare variable $config:repo-descriptor := doc(concat($config:app-root, "/repo.xml"))/repo:meta;
 

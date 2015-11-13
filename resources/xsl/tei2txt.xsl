@@ -9,10 +9,18 @@
             <xd:p/>
         </xd:desc>
     </xd:doc>
-    <xsl:template match="/">
+    <xsl:variable name="newline" select="'&#xD;&#xA;'"/>
+    <xsl:template match="foo">
         <xsl:apply-templates select="tei:TEI/tei:text/tei:body"/>
     </xsl:template>
+    <xsl:template match="/">
+        <xsl:apply-templates/>
+    </xsl:template>
+    <xsl:template match="tei:teiHeader"><!-- No op --></xsl:template>
+    <xsl:template match="tei:div">
+        <xsl:apply-templates/>
+    </xsl:template>
     <xsl:template match="tei:lb">
-        <xsl:text> </xsl:text>
+        <xsl:value-of select="$newline"/>
     </xsl:template>
 </xsl:stylesheet>
