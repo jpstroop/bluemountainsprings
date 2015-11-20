@@ -51,6 +51,20 @@
         </div>
         <div class="resource">
             <header>
+                <h3>springs/issues/{bmtnid}</h3>
+            </header>
+            <p>The magazine issue with id <i>bmtnid</i>.</p>
+        </div>
+        <dl>
+            <dt>application/mods+xml</dt>
+            <dd>curl -H"Accept:application/mods+xml" http://HOST/restxq/springs/constituent/bmtnaap_1921-11_01</dd>
+            <dt>application/rdf+xml</dt>
+            <dd>curl -H"Accept:application/rdf+xml" http://HOST/restxq/springs/constituent/bmtnaap_1921-11_01</dd>
+            <dt>application/tei+xml</dt>
+            <dd>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/constituent/bmtnaap_1921-11_01</dd>
+        </dl>
+        <div class="resource">
+            <header>
                 <h3>springs/constituent/{$issueid}/{$constid}</h3>
                 <p>A specific constituent of a magazine issue.</p>
             </header>

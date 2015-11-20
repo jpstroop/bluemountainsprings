@@ -22,6 +22,14 @@ as element()
 {
     collection($springs:transcriptions)//tei:TEI[./tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid'] = 'urn:PUL:bluemountain:' || $issueid]
 };
+
+declare function springs:_issue-mods($bmtnid as xs:string)
+as element()
+{
+    let $issue := collection($springs:metadata)//mods:mods[mods:identifier[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
+    return $issue    
+};
+
 declare
   %rest:GET
    %rest:path("/springs/serial_works")
@@ -143,6 +151,32 @@ function springs:publication_works($bmtnid) {
                 }
             </issues>
         </magazine>
+};
+
+declare
+  %rest:GET
+  %rest:path("/springs/issues/{$bmtnid}")
+  %rest:produces("application/mods+xml")
+function springs:issue-as-mods($bmtnid) {
+    springs:_issue-mods($bmtnid)    
+};
+
+declare
+  %rest:GET
+  %rest:path("/springs/issues/{$bmtnid}")
+  %rest:produces("application/tei+xml")
+function springs:issue-as-tei($bmtnid) {
+    springs:_issue($bmtnid)
+};
+
+declare
+  %rest:GET
+  %rest:path("/springs/issues/{$bmtnid}")
+  %rest:produces("application/rdf+xml")
+function springs:issue-as-rdf($bmtnid) {
+    let $issue := springs:_issue-mods($bmtnid)
+    let $xsl := doc($config:app-root || "/resources/xsl/mods2crm.xsl")
+    return transform:transform($issue, $xsl, ())
 };
 
 declare
