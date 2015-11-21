@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns="http://erlangen-crm.org/efrbroo/" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:mets="http://www.loc.gov/METS/" xmlns:owl="http://www.w3.org/2002/07/owl#" xmlns:xsd="http://www.w3.org/2001/XMLSchema#" xmlns:skos="http://www.w3.org/2004/02/skos/core#" xmlns:ns0="http://www.w3.org/2004/02/skos/" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:bmtn="http://blaueberg.info/" xmlns:local="http://library.princeton.edu" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:efrbroo="http://erlangen-crm.org/efrbroo/" xmlns:dc="http://purl.org/dc/terms/" version="2.0">
+<xsl:stylesheet xmlns="http://erlangen-crm.org/efrbroo/" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:mets="http://www.loc.gov/METS/" xmlns:owl="http://www.w3.org/2002/07/owl#" xmlns:xsd="http://www.w3.org/2001/XMLSchema#" xmlns:skos="http://www.w3.org/2004/02/skos/core#" xmlns:ns0="http://www.w3.org/2004/02/skos/" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:bmtn="http://blaueberg.info/" xmlns:local="http://library.princeton.edu" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:efrbroo="http://erlangen-crm.org/efrbroo/" xmlns:dc="http://purl.org/dc/terms/" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0">
     <xsl:output indent="yes"/>
     <xsl:template match="/">
         <rdf:RDF>
@@ -10,7 +10,10 @@
          manuscript) reflects the notion of F3 Manifestation Product
          Type -->
         <xsl:variable name="bmtnid">
-            substring-after(mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:')
+            <xsl:value-of select="substring-after(mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:')"/>
+        </xsl:variable>
+        <xsl:variable name="hostid">
+            <xsl:value-of select="substring-after(mods:relatedItem[@type='host']/@xlink:href, 'urn:PUL:bluemountain:')"/>
         </xsl:variable>
         <F3_Manifestation_Product_Type rdf:about="http://blaueberg.info/F3/{$bmtnid}">
             <dc:title>
@@ -30,6 +33,17 @@
                     <R14_incorporates>
                         <F22_Self_Contained_Expression rdf:about="http://blaueberg.info/F22/{$bmtnid}/0"/>
                     </R14_incorporates>
+                    <R3i_realises>
+                        <F19_Publication_Work rdf:about="http://blaueberg.info/F19/{$bmtnid}/0">
+                            <R5i_is_component_of>
+                                <F24_Publication_Expression rdf:about="http://blaueberg.info/F24/{$hostid}">
+                                    <R3i_realises>
+                                        <F18_Serial_Work rdf:about="http://blaueberg.info/F18/{$hostid}"/>
+                                    </R3i_realises>
+                                </F24_Publication_Expression>
+                            </R5i_is_component_of>
+                        </F19_Publication_Work>
+                    </R3i_realises>
                 </F24_Publication_Expression>
             </CLR6_should_carry>
         </F3_Manifestation_Product_Type>
@@ -37,7 +51,9 @@
     </xsl:template>
     <xsl:template match="mods:relatedItem[@type='constituent']">
         <xsl:variable name="constituentID" select="@ID"/>
-        <xsl:variable name="bmtnid" select="substring-after(./ancestor::mods:mods/mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:')"/>
+        <xsl:variable name="bmtnid">
+            <xsl:value-of select="substring-after(./ancestor::mods:mods/mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:')"/>
+        </xsl:variable>
         <F22_Self_Contained_Expression rdf:about="http://blaueberg.info/F22/{$bmtnid}/{$constituentID}">
             <R14i_is_incorporated_in>
                 <F22_Self_Contained_Expression rdf:about="http://blaueberg.info/F22/{$bmtnid}/0"/>
@@ -57,6 +73,9 @@
                     <F28_Expression_Creation rdf:about="http://blaueberg.info/F28/{$bmtnid}/{$constituentID}/{$i}">
                         <E14_carried_out_by>
                             <E21_Person>
+                                <xsl:if test="./@valueURI">
+                                    <xsl:attribute name="rdf:about" select="./@valueURI"/>
+                                </xsl:if>
                                 <P1131_is_identified_by>
                                     <xsl:apply-templates select="mods:displayForm"/>
                                 </P1131_is_identified_by>
