@@ -57,11 +57,11 @@
         </div>
         <dl>
             <dt>application/mods+xml</dt>
-            <dd>curl -H"Accept:application/mods+xml" http://HOST/restxq/springs/constituent/bmtnaap_1921-11_01</dd>
+            <dd>curl -H"Accept:application/mods+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
             <dt>application/rdf+xml</dt>
-            <dd>curl -H"Accept:application/rdf+xml" http://HOST/restxq/springs/constituent/bmtnaap_1921-11_01</dd>
+            <dd>curl -H"Accept:application/rdf+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
             <dt>application/tei+xml</dt>
-            <dd>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/constituent/bmtnaap_1921-11_01</dd>
+            <dd>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
         </dl>
         <div class="resource">
             <header>
@@ -95,6 +95,30 @@
             <ul>
                 <li>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/constituents?byline=Tzara</li>
             </ul>
+        </div>
+        <div class="resource">
+            <header>
+                <h3>springs/iiif/{$issueid}/manifest</h3>
+                <p>IIIF manifest for an issue</p>
+            </header>
+            <dl>
+                <dt>application/xml</dt>
+                <dd>Returns an XML representation of a IIIF manifest.</dd>
+            </dl>
+            <p>Try it:</p>
+            <a href="../../restxq/springs/iiif/bmtnaap_1921-11_01/manifest">restxq/springs/iiif/bmtnaap_1921-11_01/manifest</a>
+        </div>
+        <div class="resource">
+            <header>
+                <h3>springs/iiif/{$issueid}/manifest.json</h3>
+                <p>IIIF manifest for an issue</p>
+            </header>
+            <dl>
+                <dt>application/json</dt>
+                <dd>Returns a IIIF manifest.</dd>
+            </dl>
+            <p>Try it:</p>
+            <a href="../../restxq/springs/iiif/bmtnaap_1921-11_01/manifest.json">restxq/springs/iiif/bmtnaap_1921-11_01/manifest.json</a>
         </div>
     </section>
 </article>
