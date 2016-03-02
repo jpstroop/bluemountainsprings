@@ -12,7 +12,7 @@ declare namespace mets="http://www.loc.gov/METS/";
 declare namespace xlink="http://www.w3.org/1999/xlink";
 declare namespace tei="http://www.tei-c.org/ns/1.0";
 
-declare variable $springs:data-root        as xs:string { "/db/bluemtn" };
+declare variable $springs:data-root        as xs:string { "/db/bmtn-data" };
 declare variable $springs:metadata        as xs:string { $springs:data-root || "/metadata" };
 declare variable $springs:transcriptions  as xs:string { $springs:data-root || "/transcriptions" };
 
@@ -20,13 +20,13 @@ declare variable $springs:transcriptions  as xs:string { $springs:data-root || "
 declare function springs:_issue($issueid as xs:string)
 as element()
 {
-    collection($springs:transcriptions)//tei:TEI[./tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid'] = 'urn:PUL:bluemountain:' || $issueid]
+    collection($config:transcriptions)//tei:TEI[./tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid'] = 'urn:PUL:bluemountain:' || $issueid]
 };
 
 declare function springs:_issue-mods($bmtnid as xs:string)
 as element()
 {
-    let $issue := collection($springs:metadata)//mods:mods[mods:identifier[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $issue := collection($config:metadata)//mods:mods[mods:identifier[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
     return $issue    
 };
 
@@ -37,7 +37,7 @@ declare
 function springs:serial-works() {
   <serial_works>
       {
-          let $recs := collection($springs:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
+          let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
           for $rec in $recs
           return <serial_work>
                     <title>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</title>
@@ -54,7 +54,7 @@ declare
 function springs:magazines() {
   <magazines>
       {
-          let $recs := collection($springs:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
+          let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
           for $rec in $recs
           return <magazine>
                     <title>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</title>
@@ -72,7 +72,7 @@ declare
 function springs:magazine($bmtnid) {
   <magazines>
       {
-          let $ids := collection($springs:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
+          let $ids := collection($config:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
           return 
               <magazine>
                 <title>{ $ids[1]/ancestor::mods:mods/mods:titleInfo[1]/mods:title[1]/text() }</title>
@@ -89,7 +89,7 @@ declare
 function springs:serial-work($bmtnid) {
   <serial_works>
       {
-          let $ids := collection($springs:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
+          let $ids := collection($config:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
           return 
               <serial_work>
                 <title>{ $ids[1]/ancestor::mods:mods/mods:titleInfo[1]/mods:title[1]/text() }</title>
@@ -103,9 +103,9 @@ declare
   %rest:GET
   %rest:path("/springs/serial_works/{$bmtnid}/publication_works")
 function springs:publication_works($bmtnid) {
-    let $magazine := collection($springs:metadata)//mods:mods[mods:identifer[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $magazine := collection($config:metadata)//mods:mods[mods:identifer[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
     let $title    := $magazine/mods:titleInfo[1]/mods:title[1]/text()
-    let $issues   := collection($springs:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $issues   := collection($config:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
     return
         <serial_work>
             <title>{ $title }</title>
@@ -130,9 +130,9 @@ declare
   %rest:GET
   %rest:path("/springs/magazines/{$bmtnid}/issues")
 function springs:publication_works($bmtnid) {
-    let $magazine := collection($springs:metadata)//mods:mods[mods:identifer[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $magazine := collection($config:metadata)//mods:mods[mods:identifer[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
     let $title    := $magazine/mods:titleInfo[1]/mods:title[1]/text()
-    let $issues   := collection($springs:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $issues   := collection($config:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
     return
         <magazine>
             <title>{ $title }</title>
@@ -183,7 +183,7 @@ declare
   %rest:GET
   %rest:path("/springs/constituents/{$bmtnid}")
 function springs:constituents($bmtnid) {
-    let $issue := collection($springs:metadata)//mods:mods[mods:identifier[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $issue := collection($config:metadata)//mods:mods[mods:identifier[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
     let $constituents := $issue/mods:relatedItem[@type = 'constituent']
     return
         <issue>
@@ -215,7 +215,7 @@ declare
 function springs:constituents-by-byline-tei($byline) {
     let $constituents := springs:constituents-with-byline($byline)
     let $xsl := doc($config:app-root || "/resources/xsl/constituent-to-tei.xsl")
-    let $constituents-old := collection($springs:transcriptions)//tei:relatedItem[@type='constituent' and ft:query(.//tei:persName, $byline)]
+    let $constituents-old := collection($config:transcriptions)//tei:relatedItem[@type='constituent' and ft:query(.//tei:persName, $byline)]
     return
         <teiCorpus xmlns="http://www.tei-c.org/ns/1.0">
             <teiHeader>
@@ -303,5 +303,26 @@ function springs:text($issueid) {
 declare function springs:constituents-with-byline($byline as xs:string)
 as element()*
 {
-    collection($springs:transcriptions)//tei:relatedItem[ft:query(.//tei:persName, $byline)]
+    collection($config:transcriptions)//tei:relatedItem[ft:query(.//tei:persName, $byline)]
 };
+
+declare
+ %rest:GET
+ %rest:path("/springs/iiif/{$issueid}/manifest")
+function springs:mets-to-manifest-xml($issueid) {
+    let $issue := springs:_issue-mods($issueid)
+    let $xsl := doc($config:app-root || "/resources/xsl/bmtn-manifest.xsl")
+    return transform:transform($issue/ancestor::mets:mets, $xsl, ())
+};
+
+declare
+ %rest:GET
+ %rest:path("/springs/iiif/{$issueid}/manifest.json")
+  %output:method("text")
+  %rest:produces("application/json")
+function springs:mets-to-manifest-json($issueid) {
+    let $manifest-xml := springs:mets-to-manifest-xml($issueid)
+    let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
+    return transform:transform($manifest-xml, $xsl, ())
+
+    };
