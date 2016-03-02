@@ -93,6 +93,7 @@
     </xsl:template>
     <xsl:template match="mets:div">
         <xsl:variable name="image-fileid" select="mets:fptr//mets:area[not(@BEGIN)]/@FILEID"/>
+        <xsl:variable name="image-file" select="key('imageKey', $image-fileid)"/>
         <xsl:variable name="canvasid">
             <xsl:value-of select="string-join(($baseURI, $bmtnid, 'canvas', @ID), '/')"/>
         </xsl:variable>
@@ -112,6 +113,12 @@
                     <xsl:otherwise>Unlabeled</xsl:otherwise>
                 </xsl:choose>
             </string>
+            <number key="height">
+                <xsl:value-of select="key('techMD', xs:string($image-file/@ADMID))//mix:ImageLength"/>
+            </number>
+            <number key="width">
+                <xsl:value-of select="key('techMD', xs:string($image-file/@ADMID))//mix:ImageWidth"/>
+            </number>
             <array key="images">
                 <xsl:apply-templates select="key('imageKey', $image-fileid)">
                     <xsl:with-param name="canvasid" select="$canvasid"/>
