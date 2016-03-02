@@ -2,10 +2,13 @@ xquery version "3.0";
 
 module namespace springs = "http://bluemountain.princeton.edu/apps/springs";
 import module namespace config="http://bluemountain.princeton.edu/apps/springs/config" at "config.xqm";
+import module namespace request = "http://exist-db.org/xquery/request";
+import module namespace response = "http://exist-db.org/xquery/response";
 
 import module namespace rest = "http://exquery.org/ns/restxq" ;
 (:  declare namespace rest="http://exquery.org/ns/restxq"; :)
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
+declare namespace http = "http://expath.org/ns/http-client"; 
 
 declare namespace mods="http://www.loc.gov/mods/v3";
 declare namespace mets="http://www.loc.gov/METS/";
@@ -15,6 +18,7 @@ declare namespace tei="http://www.tei-c.org/ns/1.0";
 declare variable $springs:data-root        as xs:string { "/db/bmtn-data" };
 declare variable $springs:metadata        as xs:string { $springs:data-root || "/metadata" };
 declare variable $springs:transcriptions  as xs:string { $springs:data-root || "/transcriptions" };
+
 
 
 declare function springs:_issue($issueid as xs:string)
@@ -318,11 +322,22 @@ function springs:mets-to-manifest-xml($issueid) {
 declare
  %rest:GET
  %rest:path("/springs/iiif/{$issueid}/manifest.json")
-  %output:method("text")
-  %rest:produces("application/json")
+ %output:method("text")
+ %rest:produces("application/json")
+
+  
 function springs:mets-to-manifest-json($issueid) {
     let $manifest-xml := springs:mets-to-manifest-xml($issueid)
     let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
-    return transform:transform($manifest-xml, $xsl, ())
-
+    
+    return 
+    (
+        <rest:response>
+            <http:response>
+                <http:header name="access-control-allow-origin" value="*"/>
+            </http:response>
+        </rest:response>,
+    
+    transform:transform($manifest-xml, $xsl, ())
+    )
     };
