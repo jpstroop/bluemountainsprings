@@ -29,7 +29,7 @@ declare variable $config:app-root :=
         substring-before($modulePath, "/modules")
 ;
 
-declare variable $config:data-root        as xs:string { "/db/bluemtn" };
+declare variable $config:data-root        as xs:string { "/db/bmtn-data" };
 declare variable $config:metadata        as xs:string { $config:data-root || "/metadata" };
 declare variable $config:transcriptions  as xs:string { $config:data-root || "/transcriptions" };
 
