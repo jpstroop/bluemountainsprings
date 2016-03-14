@@ -33,6 +33,7 @@ declare variable $config:data-root        as xs:string { "/db/bmtn-data" };
 declare variable $config:metadata        as xs:string { $config:data-root || "/metadata" };
 declare variable $config:transcriptions  as xs:string { $config:data-root || "/transcriptions" };
 
+declare variable $config:springs-root    as xs:string { "http://localhost:8080/exist/restxq/springs" };
 
 declare variable $config:repo-descriptor := doc(concat($config:app-root, "/repo.xml"))/repo:meta;
 

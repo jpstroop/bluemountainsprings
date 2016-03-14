@@ -312,11 +312,70 @@ as element()*
 
 declare
  %rest:GET
+ %rest:path("/springs/iiif/collection/top")
+function springs:collection-top-xml()
+{
+    let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
+    let $xsl := doc($config:app-root || "/resources/xsl/bmtn-collection-top.xsl") 
+    
+    return 
+    (
+        <rest:response>
+            <http:response>
+                <http:header name="access-control-allow-origin" value="*"/>
+            </http:response>
+        </rest:response>,
+    
+    transform:transform(
+        <collection level="top">
+            <titles>{ $recs }</titles>
+        </collection>,
+    $xsl, ())
+    )
+};
+
+declare
+ %rest:GET
+ %rest:path("/springs/iiif/collection/{$bmtnid}")
+function springs:collection-xml($bmtnid)
+{
+    let $fullid := concat('urn:PUL:bluemountain:', $bmtnid)
+    let $titlerec := collection($config:metadata)//mods:identifier[@type='bmtn'][. = $fullid]/ancestor::mods:mods
+    let $issuerecs :=
+        collection($config:metadata)//mods:mods[mods:relatedItem[@type='host'][@xlink:href= $fullid]]
+    let $xsl := doc($config:app-root || "/resources/xsl/bmtn-collection-top.xsl") 
+    let $baseURI := $config:springs-root || '/iiif'
+
+    return
+    (
+        <rest:response>
+            <http:response>
+                <http:header name="access-control-allow-origin" value="*"/>
+            </http:response>
+        </rest:response>,
+    
+        transform:transform(<collection>
+            <title>{ $titlerec }</title>
+            <issues>{ $issuerecs }</issues>
+        </collection>, $xsl, 
+            <parameters>
+                <param name="baseURI" value="{ $baseURI }"/>
+            </parameters>
+        )
+        
+    )
+};
+
+declare
+ %rest:GET
  %rest:path("/springs/iiif/{$issueid}/manifest")
 function springs:mets-to-manifest-xml($issueid) {
     let $issue := springs:_issue-mods($issueid)
+    let $baseURI := $config:springs-root || '/iiif'
     let $xsl := doc($config:app-root || "/resources/xsl/bmtn-manifest.xsl")
-    return transform:transform($issue/ancestor::mets:mets, $xsl, ())
+    return transform:transform($issue/ancestor::mets:mets, $xsl,             <parameters>
+                <param name="baseURI" value="{ $baseURI }"/>
+            </parameters>)
 };
 
 declare
@@ -324,8 +383,6 @@ declare
  %rest:path("/springs/iiif/{$issueid}/manifest.json")
  %output:method("text")
  %rest:produces("application/json")
-
-  
 function springs:mets-to-manifest-json($issueid) {
     let $manifest-xml := springs:mets-to-manifest-xml($issueid)
     let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
@@ -340,4 +397,76 @@ function springs:mets-to-manifest-json($issueid) {
     
     transform:transform($manifest-xml, $xsl, ())
     )
-    };
+};
+
+declare function springs:_issue-label($issue as element())
+{
+    "a label"
+};
+declare function springs:_bylines-from-issue($issueid as xs:string)
+as element()+
+{
+    let $issue := springs:_issue-mods($issueid)
+    let $creators := $issue//mods:roleTerm[. = 'cre']
+    return $creators/ancestor::mods:name/mods:displayForm
+};
+
+declare
+ %rest: GET
+ %rest:path("/springs/contributors/{$issueid}")
+ %output:method("text")
+ %rest:produces("text/csv")
+ 
+function springs:contributors-from-issue-csv($issueid) {
+    let $issue := springs:_issue-mods($issueid)
+    let $bylines := springs:_bylines-from-issue($issueid)
+    let $issue-label := springs:_issue-label($issue)
+    return
+    (
+    concat(string-join(('bmtnid', 'label', 'contributorid', 'byline', 'contributionid', 'title'), ','), codepoints-to-string(10)),
+    for $byline in $bylines
+        let $contributorid := 
+            if ($byline/ancestor::mods:name/@authority = 'viaf')
+                then xs:string($byline/ancestor::mods:name/@valueURI)
+            else ()
+        let $constituentid := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/@ID)
+        let $title := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/mods:titleInfo[1])
+        return
+            concat(string-join(($issueid, $issue-label, $contributorid, xs:string($byline), $constituentid, $title), ','), codepoints-to-string(10))
+    )
+ 
+};
+
+declare 
+ %rest: GET
+ %rest:path("/springs/contributors/{$issueid}")
+ %output:method("json")
+ %rest:produces("application/json")
+
+ 
+function springs:contributors-from-issue($issueid) {
+    let $issue := springs:_issue-mods($issueid)
+    let $bylines := springs:_bylines-from-issue($issueid)
+    let $issue-label := springs:_issue-label($issue)
+  
+    return
+        <contributors> {
+          for $byline in $bylines
+          let $contributorid := 
+            if ($byline/ancestor::mods:name/@authority = 'viaf')
+                then xs:string($byline/ancestor::mods:name/@valueURI)
+            else ()
+          let $constituentid := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/@ID)
+          let $title := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/mods:titleInfo[1])
+          return
+            <contributor>
+                <bmtnid>{ $issueid }</bmtnid>
+                <label>{ $issue-label }</label>
+                <contributorid>{ $contributorid }</contributorid>
+                <byline>{ xs:string($byline) }</byline>
+                <contributionid>{ $constituentid }</contributionid>
+                <title> { $title }</title>
+            </contributor>
+        } </contributors>
+    
+};

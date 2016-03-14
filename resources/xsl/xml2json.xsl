@@ -14,13 +14,18 @@
         - boolean (not handled yet)
         - null    (not handled yet)
     -->
-    <xsl:function name="json:escape-string" as="xs:string">
-        <xsl:param name="input" as="xs:string"/>
-        <xsl:variable name="input" as="xs:string">
-            <xsl:copy-of select="$input"/>
-        </xsl:variable>
-        <xsl:variable name="sub1" select="replace($input, '\\', '\\\\')"/>
-        <xsl:value-of select="replace($sub1, '&#34;', '\\&#34;')"/>
+    <xsl:function name="json:escape-string" as="xs:string*">
+        <xsl:param name="input" as="xs:string?"/>
+        <xsl:choose>
+            <xsl:when test="$input">
+                <xsl:variable name="input" as="xs:string">
+                    <xsl:copy-of select="$input"/>
+                </xsl:variable>
+                <xsl:variable name="sub1" select="replace($input, '\\', '\\\\')"/>
+                <xsl:value-of select="replace($sub1, '&#34;', '\\&#34;')"/>
+            </xsl:when>
+            <xsl:otherwise/>
+        </xsl:choose>
     </xsl:function>
     <xsl:function name="json:quote-string" as="xs:string">
         <xsl:param name="input"/>

@@ -3,7 +3,7 @@
     <xsl:output encoding="UTF-8" indent="yes" method="xml"/>
     <xsl:key name="imageKey" match="mets:fileGrp[@ID = 'IMGGRP']/mets:file" use="@ID"/>
     <xsl:key name="techMD" match="mets:techMD" use="@ID"/>
-    <xsl:variable name="baseURI">http://bluemountain.princeton.edu/api/presentation</xsl:variable>
+    <xsl:param name="baseURI">http://bluemountain.princeton.edu/springs/iiif</xsl:param>
     <xsl:variable name="bmtnid">
         <xsl:value-of select="                 substring-after(                 /mets:mets/mets:dmdSec/mets:mdWrap[@MDTYPE = 'MODS']/mets:xmlData/mods:mods/mods:identifier[@type = 'bmtn'],                 'urn:PUL:bluemountain:')"/>
     </xsl:variable>
@@ -19,9 +19,28 @@
         Because there is no explicit attribute for it,
         Assume it is the area without a BEGIN attribute.
     -->
+    <xsl:template match="mods:mods">
+        <map>
+            <string key="title">
+                <xsl:value-of select="mods:titleInfo[1]/mods:title"/>
+            </string>
+        </map>
+        <map>
+            <string key="volume">
+                <xsl:value-of select="mods:part[@type='issue']/mods:detail[@type='volume']/mods:caption"/>
+            </string>
+        </map>
+        <map>
+            <string key="number">
+                <xsl:value-of select="mods:part[@type='issue']/mods:detail[@type='number']/mods:caption"/>
+            </string>
+        </map>
+    </xsl:template>
     <xsl:template name="metadata">
         <xsl:param name="metsrec" as="node()"/>
-        <array key="metadata"/>
+        <array key="metadata">
+            <xsl:apply-templates select="$metsrec//mods:mods"/>
+        </array>
     </xsl:template>
     <xsl:template name="description">
         <xsl:param name="metsrec" as="node()"/>
@@ -133,7 +152,7 @@
             <string key="motivation">sc:painting</string>
             <map key="resource">
                 <string key="@id">
-                    <xsl:value-of select="local:file-path(mets:FLocat/@xlink:href)"/>
+                    <xsl:value-of select="concat(local:file-path(mets:FLocat/@xlink:href), '/full/!200,200/0/default.jpg')"/>
                 </string>
                 <string key="@type">dctypes:Image</string>
                 <string key="format">
@@ -141,7 +160,9 @@
                 </string>
                 <map key="service">
                     <string key="@context">http://iiif.io/api/image/2/context.json</string>
-                    <string key="@id">http://libimages.princeton.edu/loris2</string>
+                    <string key="@id">
+                        <xsl:value-of select="local:file-path(mets:FLocat/@xlink:href)"/>
+                    </string>
                     <string key="profile">http://iiif.io/api/image/2/level1.json</string>
                 </map>
                 <number key="height">
