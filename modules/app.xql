@@ -38,3 +38,4 @@ as element()*
         else ()
     return <p>found {count($hits)} hits for {$byline}</p>
 };
+

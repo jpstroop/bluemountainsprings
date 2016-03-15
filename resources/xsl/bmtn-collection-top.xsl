@@ -9,7 +9,7 @@
             <xd:p/>
         </xd:desc>
     </xd:doc>
-    <xsl:variable name="baseURI">http://localhost:8080/exist/restxq/springs/iiif</xsl:variable>
+    <xsl:param name="baseURI">http://localhost:8080/exist/restxq/springs/iiif</xsl:param>
     <xsl:template match="/">
         <xsl:apply-templates/>
     </xsl:template>

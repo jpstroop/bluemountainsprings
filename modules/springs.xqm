@@ -391,6 +391,7 @@ function springs:mets-to-manifest-json($issueid) {
     (
         <rest:response>
             <http:response>
+                <http:header name="Content-Type" value="application/json"/>
                 <http:header name="access-control-allow-origin" value="*"/>
             </http:response>
         </rest:response>,

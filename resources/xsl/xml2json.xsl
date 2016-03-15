@@ -85,6 +85,13 @@
         <xsl:variable name="value">
             <xsl:value-of select="json:quote-string(json:escape-string(./text()))"/>
         </xsl:variable>
-        <xsl:value-of select="string-join(($key, $value), ' : ')"/>
+        <xsl:choose>
+            <xsl:when test="$key">
+                <xsl:value-of select="string-join(($key, $value), ' : ')"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$value"/>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 </xsl:stylesheet>
