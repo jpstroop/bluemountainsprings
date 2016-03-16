@@ -8,6 +8,7 @@
     <xsl:key name="alto-file" match="mets:fileGrp[@ID='ALTOGRP']/mets:file" use="@ID"/>
     <xsl:key name="techMD" match="mets:techMD" use="@ID"/>
     <xsl:param name="baseURI">http://bluemountain.princeton.edu/springs/iiif</xsl:param><!-- default value; real value is passed in -->
+    <xsl:variable name="iiif-context">http://iiif.io/api/image/2/context.json</xsl:variable>
     <xsl:variable name="bmtnid">
         <xsl:value-of select="substring-after(/mets:mets/mets:dmdSec/mets:mdWrap[@MDTYPE = 'MODS']/mets:xmlData/mods:mods/mods:identifier[@type = 'bmtn'],'urn:PUL:bluemountain:')"/>
     </xsl:variable>
@@ -98,29 +99,24 @@
         <string key="description">a description</string>
     </xsl:template>
     <xsl:template name="license">
-        <xsl:param name="metsrec" as="node()">
-            <string key="license">a license</string>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <string key="license">a license</string>
     </xsl:template>
     <xsl:template name="attribution">
-        <xsl:param name="metsrec" as="node()">
-            <string key="attribution">an attributio</string>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <string key="attribution">Provided by the Blue Mountain Project at Princeton University</string>
     </xsl:template>
     <xsl:template name="service-manifest">
-        <xsl:param name="metsrec" as="node()">
-            <map key="service"/>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <map key="service"/>
     </xsl:template>
     <xsl:template name="seeAlso">
-        <xsl:param name="metsrec" as="node()">
-            <map key="seeAlso"/>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <map key="seeAlso"/>
     </xsl:template>
     <xsl:template name="within">
-        <xsl:param name="metsrec" as="node()">
-            <string key="within">within URI</string>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <string key="within">within URI</string>
     </xsl:template>
     <xsl:template name="sequences">
         <xsl:param name="metsrec" as="node()"/>
@@ -212,7 +208,9 @@
                     <xsl:value-of select="@MIMETYPE"/>
                 </string>
                 <map key="service">
-                    <string key="@context">http://iiif.io/api/image/2/context.json</string>
+                    <string key="@context">
+                        <xsl:value-of select="$iiif-context"/>
+                    </string>
                     <string key="@id">
                         <xsl:value-of select="local:file-path(mets:FLocat/@xlink:href)"/>
                     </string>
@@ -232,7 +230,9 @@
     </xsl:template>
     <xsl:template match="mets:mets">
         <map>
-            <string key="@context">http://iiif.io/api/presentation/2/context.json</string>
+            <string key="@context">
+                <xsl:value-of select="$iiif-context"/>
+            </string>
             <string key="@type">sc:Manifest</string>
             <string key="@id">
                 <xsl:value-of select="string-join(($baseURI, $bmtnid, 'manifest'), '/')"/>
