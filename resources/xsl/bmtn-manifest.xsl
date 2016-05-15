@@ -7,7 +7,7 @@
     <xsl:key name="div-by-dmdid" match="mets:div" use="@DMDID"/>
     <xsl:key name="alto-file" match="mets:fileGrp[@ID='ALTOGRP']/mets:file" use="@ID"/>
     <xsl:key name="techMD" match="mets:techMD" use="@ID"/>
-    <xsl:param name="baseURI">http://bluemountain.princeton.edu/springs/iiif</xsl:param><!-- default value; real value is passed in -->
+    <xsl:param name="baseURI">http://bluemountain.princeton.edu/iiif</xsl:param><!-- default value; real value is passed in -->
     <xsl:variable name="iiif-context">http://iiif.io/api/image/2/context.json</xsl:variable>
     <xsl:variable name="bmtnid">
         <xsl:value-of select="substring-after(/mets:mets/mets:dmdSec/mets:mdWrap[@MDTYPE = 'MODS']/mets:xmlData/mods:mods/mods:identifier[@type = 'bmtn'],'urn:PUL:bluemountain:')"/>
@@ -20,24 +20,26 @@
         <xsl:variable name="base">bluemountain/astore%2Fperiodicals</xsl:variable>
         <xsl:variable name="path" select="substring-after($fileURI, 'file:///usr/share/BlueMountain/astore/periodicals/')"/>
         <xsl:value-of select="concat($protocol, $host, '/', $service, '/', $base, '/', $path)"/>
-    </xsl:function><!-- A hack to get the image file associated with a div.
-        Because there is no explicit attribute for it,
-        Assume it is the area without a BEGIN attribute.
-    -->
-    <xsl:template match="mods:mods">
+    </xsl:function>
+    <xsl:template match="mods:mods" mode="metadata">
         <map>
             <string key="title">
-                <xsl:value-of select="mods:titleInfo[1]/mods:title"/>
+                <xsl:value-of select="mods:use-title(., 'full')"/>
             </string>
         </map>
         <map>
-            <string key="volume">
-                <xsl:value-of select="mods:part[@type='issue']/mods:detail[@type='volume']/mods:caption"/>
+            <string key="display-date">
+                <xsl:value-of select="mods:display-date(.)"/>
             </string>
         </map>
         <map>
-            <string key="number">
-                <xsl:value-of select="mods:part[@type='issue']/mods:detail[@type='number']/mods:caption"/>
+            <string key="detail">
+                <xsl:apply-templates select="mods:part/mods:detail"/>
+            </string>
+        </map>
+        <map>
+            <string key="part">
+                <xsl:apply-templates select="mods:part"/>
             </string>
         </map>
     </xsl:template>
@@ -91,7 +93,7 @@
     <xsl:template name="metadata">
         <xsl:param name="metsrec" as="node()"/>
         <array key="metadata">
-            <xsl:apply-templates select="$metsrec//mods:mods"/>
+            <xsl:apply-templates select="$metsrec//mods:mods" mode="metadata"/>
         </array>
     </xsl:template>
     <xsl:template name="description">
@@ -238,7 +240,9 @@
                 <xsl:value-of select="string-join(($baseURI, $bmtnid, 'manifest'), '/')"/>
             </string>
             <string key="label">
-                <xsl:value-of select="$bmtnid"/>
+                <xsl:apply-templates select="mets:dmdSec/mets:mdWrap/mets:xmlData/mods:mods/mods:titleInfo[1]"/>
+                <xsl:text>, </xsl:text>
+                <xsl:apply-templates select="mets:dmdSec/mets:mdWrap/mets:xmlData/mods:mods/mods:part"/>
             </string>
             <xsl:call-template name="metadata">
                 <xsl:with-param name="metsrec" select="current()"/>

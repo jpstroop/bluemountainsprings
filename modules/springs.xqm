@@ -51,6 +51,13 @@ function springs:serial-works() {
   </serial_works>
 };
 
+declare function springs:_magazine($bmtnid as xs:string)
+{
+    let $identifier := concat('urn:PUL:bluemountain:', $bmtnid)
+    let $titlerec := collection($config:metadata)//mods:identifier[@type='bmtn' and . = $identifier]/ancestor::mods:mods
+    return $titlerec
+};
+
 declare
   %rest:GET
    %rest:path("/springs/magazines")
@@ -61,8 +68,9 @@ function springs:magazines() {
           let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
           for $rec in $recs
           return <magazine>
-                    <title>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</title>
-                    <id>{ substring-after($rec//mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:') }</id>
+                    <primaryTitle>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</primaryTitle>
+                    <bmtnID>{ substring-after($rec//mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:') }</bmtnID>
+
                  </magazine>
       }
   </magazines>
@@ -71,19 +79,47 @@ function springs:magazines() {
 
 declare
   %rest:GET
-  %rest:path("/springs/magazines/{$bmtnid}")
+  %rest:path("/springs/magazine/{$bmtnid}")
   %output:method("json")
 function springs:magazine($bmtnid) {
-  <magazines>
-      {
-          let $ids := collection($config:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
-          return 
-              <magazine>
-                <title>{ $ids[1]/ancestor::mods:mods/mods:titleInfo[1]/mods:title[1]/text() }</title>
-                <id>{ $bmtnid }</id>
+    let $titlerec := springs:_magazine($bmtnid)
+    let $title := xs:string($titlerec/mods:titleInfo[1]/mods:title[1])
+    let $issues   := collection($config:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $sorted-issues :=
+        for $i in $issues
+        order by $i/mods:originInfo/mods:dateIssued[@keyDate='yes']
+        return $i
+    let $startDate := xs:string($sorted-issues[1]/mods:originInfo/mods:dateIssued[@keyDate='yes'])
+    let $endDate   := xs:string($sorted-issues[last()]/mods:originInfo/mods:dateIssued[@keyDate='yes'])
+    return
+   <magazine>
+    <bmtnid>{ $bmtnid }</bmtnid>
+    <primaryTitle>{ $title }</primaryTitle>
+    <startDate>{ $startDate }</startDate>
+    <endDate>{ $endDate }</endDate>
+    {
+        for $language in $titlerec/mods:language
+        return
+            <language>{ xs:string($language/mods:languageTerm) }</language>
+    },
+    
+
+
+                {
+                    for $issue in $issues
+                    let $id   := $issue//mods:identifier[@type='bmtn']/text() 
+                    let $date := $issue/mods:originInfo/mods:dateIssued[@keyDate='yes']/text()
+                    return
+                        <issues>
+                            <id>{ $id }</id>
+                            <date>{ $date }</date>
+                            <url>
+                              { $config:springs-root || '/issues/' || substring-after($id, 'urn:PUL:bluemountain:') }
+                            </url>
+                        </issues>
+                }
+
               </magazine>
-      }
-  </magazines>
 };
 
 declare
@@ -310,65 +346,10 @@ as element()*
     collection($config:transcriptions)//tei:relatedItem[ft:query(.//tei:persName, $byline)]
 };
 
-declare
- %rest:GET
- %rest:path("/springs/iiif/collection/top")
-function springs:collection-top-xml()
-{
-    let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
-    let $xsl := doc($config:app-root || "/resources/xsl/bmtn-collection-top.xsl") 
-    
-    return 
-    (
-        <rest:response>
-            <http:response>
-                <http:header name="access-control-allow-origin" value="*"/>
-            </http:response>
-        </rest:response>,
-    
-    transform:transform(
-        <collection level="top">
-            <titles>{ $recs }</titles>
-        </collection>,
-    $xsl, ())
-    )
-};
 
 declare
  %rest:GET
- %rest:path("/springs/iiif/collection/{$bmtnid}")
-function springs:collection-xml($bmtnid)
-{
-    let $fullid := concat('urn:PUL:bluemountain:', $bmtnid)
-    let $titlerec := collection($config:metadata)//mods:identifier[@type='bmtn'][. = $fullid]/ancestor::mods:mods
-    let $issuerecs :=
-        collection($config:metadata)//mods:mods[mods:relatedItem[@type='host'][@xlink:href= $fullid]]
-    let $xsl := doc($config:app-root || "/resources/xsl/bmtn-collection-top.xsl") 
-    let $baseURI := $config:springs-root || '/iiif'
-
-    return
-    (
-        <rest:response>
-            <http:response>
-                <http:header name="access-control-allow-origin" value="*"/>
-            </http:response>
-        </rest:response>,
-    
-        transform:transform(<collection>
-            <title>{ $titlerec }</title>
-            <issues>{ $issuerecs }</issues>
-        </collection>, $xsl, 
-            <parameters>
-                <param name="baseURI" value="{ $baseURI }"/>
-            </parameters>
-        )
-        
-    )
-};
-
-declare
- %rest:GET
- %rest:path("/springs/iiif/{$issueid}/manifest")
+ %rest:path("/springs/iiif/{$issueid}/manifest.xml")
 function springs:mets-to-manifest-xml($issueid) {
     let $issue := springs:_issue-mods($issueid)
     let $baseURI := $config:springs-root || '/iiif'
@@ -392,13 +373,36 @@ function springs:mets-to-manifest-json($issueid) {
         <rest:response>
             <http:response>
                 <http:header name="Content-Type" value="application/json"/>
-                <http:header name="access-control-allow-origin" value="*"/>
+                <http:header name="Access-Control-Allow-Origin" value="*"/>
             </http:response>
         </rest:response>,
     
     transform:transform($manifest-xml, $xsl, ())
     )
 };
+
+declare
+ %rest:GET
+ %rest:path("/springs/iiif/{$issueid}/manifest")
+ %output:method("text")
+ %rest:produces("application/json")
+function springs:mets-to-manifest-json($issueid) {
+    let $manifest-xml := springs:mets-to-manifest-xml($issueid)
+    let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
+    
+    return 
+    (
+        <rest:response>
+            <http:response>
+                <http:header name="Content-Type" value="application/json"/>
+                <http:header name="Access-Control-Allow-Origin" value="*"/>
+            </http:response>
+        </rest:response>,
+    
+    transform:transform($manifest-xml, $xsl, ())
+    )
+};
+
 
 declare function springs:_issue-label($issue as element())
 {
@@ -443,8 +447,6 @@ declare
  %rest:path("/springs/contributors/{$issueid}")
  %output:method("json")
  %rest:produces("application/json")
-
- 
 function springs:contributors-from-issue($issueid) {
     let $issue := springs:_issue-mods($issueid)
     let $bylines := springs:_bylines-from-issue($issueid)

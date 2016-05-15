@@ -34,6 +34,7 @@ declare variable $config:metadata        as xs:string { $config:data-root || "/m
 declare variable $config:transcriptions  as xs:string { $config:data-root || "/transcriptions" };
 
 declare variable $config:springs-root    as xs:string { "http://localhost:8080/exist/restxq/springs" };
+declare variable $config:iiif-root    as xs:string { "http://localhost:8080/exist/restxq/iiif" };
 
 declare variable $config:repo-descriptor := doc(concat($config:app-root, "/repo.xml"))/repo:meta;
 

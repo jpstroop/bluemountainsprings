@@ -9,7 +9,7 @@
             <xd:p/>
         </xd:desc>
     </xd:doc>
-    <xsl:param name="baseURI">http://localhost:8080/exist/restxq/springs/iiif</xsl:param>
+    <xsl:param name="baseURI">http://localhost:8080/exist/restxq/iiif</xsl:param>
     <xsl:template match="/">
         <xsl:apply-templates/>
     </xsl:template>
@@ -22,8 +22,7 @@
             </string>
             <string key="label">Top Level Collection for Blue Mountain</string>
             <string key="viewingHint">top</string>
-            <string key="description">A collection of magazines of music, the arts, and letters 
-                from the 20th century European and American avant-gardes</string>
+            <string key="description">A collection of magazines of music, the arts, and letters from the 20th century European and American avant-gardes</string>
             <string key="attribution">Provided by the Blue Mountain Project at Princeton University</string>
             <array key="collections">
                 <xsl:apply-templates select="titles"/>
