@@ -51,6 +51,13 @@ function springs:serial-works() {
   </serial_works>
 };
 
+declare function springs:_magazine($bmtnid as xs:string)
+{
+    let $identifier := concat('urn:PUL:bluemountain:', $bmtnid)
+    let $titlerec := collection($config:metadata)//mods:identifier[@type='bmtn' and . = $identifier]/ancestor::mods:mods
+    return $titlerec
+};
+
 declare
   %rest:GET
    %rest:path("/springs/magazines")
@@ -61,8 +68,9 @@ function springs:magazines() {
           let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
           for $rec in $recs
           return <magazine>
-                    <title>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</title>
-                    <id>{ substring-after($rec//mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:') }</id>
+                    <primaryTitle>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</primaryTitle>
+                    <bmtnID>{ substring-after($rec//mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:') }</bmtnID>
+
                  </magazine>
       }
   </magazines>
@@ -71,19 +79,47 @@ function springs:magazines() {
 
 declare
   %rest:GET
-  %rest:path("/springs/magazines/{$bmtnid}")
+  %rest:path("/springs/magazine/{$bmtnid}")
   %output:method("json")
 function springs:magazine($bmtnid) {
-  <magazines>
-      {
-          let $ids := collection($config:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
-          return 
-              <magazine>
-                <title>{ $ids[1]/ancestor::mods:mods/mods:titleInfo[1]/mods:title[1]/text() }</title>
-                <id>{ $bmtnid }</id>
+    let $titlerec := springs:_magazine($bmtnid)
+    let $title := xs:string($titlerec/mods:titleInfo[1]/mods:title[1])
+    let $issues   := collection($config:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
+    let $sorted-issues :=
+        for $i in $issues
+        order by $i/mods:originInfo/mods:dateIssued[@keyDate='yes']
+        return $i
+    let $startDate := xs:string($sorted-issues[1]/mods:originInfo/mods:dateIssued[@keyDate='yes'])
+    let $endDate   := xs:string($sorted-issues[last()]/mods:originInfo/mods:dateIssued[@keyDate='yes'])
+    return
+   <magazine>
+    <bmtnid>{ $bmtnid }</bmtnid>
+    <primaryTitle>{ $title }</primaryTitle>
+    <startDate>{ $startDate }</startDate>
+    <endDate>{ $endDate }</endDate>
+    {
+        for $language in $titlerec/mods:language
+        return
+            <language>{ xs:string($language/mods:languageTerm) }</language>
+    },
+    
+
+
+                {
+                    for $issue in $issues
+                    let $id   := $issue//mods:identifier[@type='bmtn']/text() 
+                    let $date := $issue/mods:originInfo/mods:dateIssued[@keyDate='yes']/text()
+                    return
+                        <issues>
+                            <id>{ $id }</id>
+                            <date>{ $date }</date>
+                            <url>
+                              { $config:springs-root || '/issues/' || substring-after($id, 'urn:PUL:bluemountain:') }
+                            </url>
+                        </issues>
+                }
+
               </magazine>
-      }
-  </magazines>
 };
 
 declare
@@ -310,13 +346,17 @@ as element()*
     collection($config:transcriptions)//tei:relatedItem[ft:query(.//tei:persName, $byline)]
 };
 
+
 declare
  %rest:GET
- %rest:path("/springs/iiif/{$issueid}/manifest")
+ %rest:path("/springs/iiif/{$issueid}/manifest.xml")
 function springs:mets-to-manifest-xml($issueid) {
     let $issue := springs:_issue-mods($issueid)
+    let $baseURI := $config:springs-root || '/iiif'
     let $xsl := doc($config:app-root || "/resources/xsl/bmtn-manifest.xsl")
-    return transform:transform($issue/ancestor::mets:mets, $xsl, ())
+    return transform:transform($issue/ancestor::mets:mets, $xsl,             <parameters>
+                <param name="baseURI" value="{ $baseURI }"/>
+            </parameters>)
 };
 
 declare
@@ -324,8 +364,6 @@ declare
  %rest:path("/springs/iiif/{$issueid}/manifest.json")
  %output:method("text")
  %rest:produces("application/json")
-
-  
 function springs:mets-to-manifest-json($issueid) {
     let $manifest-xml := springs:mets-to-manifest-xml($issueid)
     let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
@@ -334,10 +372,104 @@ function springs:mets-to-manifest-json($issueid) {
     (
         <rest:response>
             <http:response>
-                <http:header name="access-control-allow-origin" value="*"/>
+                <http:header name="Content-Type" value="application/json"/>
+                <http:header name="Access-Control-Allow-Origin" value="*"/>
             </http:response>
         </rest:response>,
     
     transform:transform($manifest-xml, $xsl, ())
     )
-    };
+};
+
+declare
+ %rest:GET
+ %rest:path("/springs/iiif/{$issueid}/manifest")
+ %output:method("text")
+ %rest:produces("application/json")
+function springs:mets-to-manifest-json($issueid) {
+    let $manifest-xml := springs:mets-to-manifest-xml($issueid)
+    let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
+    
+    return 
+    (
+        <rest:response>
+            <http:response>
+                <http:header name="Content-Type" value="application/json"/>
+                <http:header name="Access-Control-Allow-Origin" value="*"/>
+            </http:response>
+        </rest:response>,
+    
+    transform:transform($manifest-xml, $xsl, ())
+    )
+};
+
+
+declare function springs:_issue-label($issue as element())
+{
+    "a label"
+};
+declare function springs:_bylines-from-issue($issueid as xs:string)
+as element()+
+{
+    let $issue := springs:_issue-mods($issueid)
+    let $creators := $issue//mods:roleTerm[. = 'cre']
+    return $creators/ancestor::mods:name/mods:displayForm
+};
+
+declare
+ %rest: GET
+ %rest:path("/springs/contributors/{$issueid}")
+ %output:method("text")
+ %rest:produces("text/csv")
+ 
+function springs:contributors-from-issue-csv($issueid) {
+    let $issue := springs:_issue-mods($issueid)
+    let $bylines := springs:_bylines-from-issue($issueid)
+    let $issue-label := springs:_issue-label($issue)
+    return
+    (
+    concat(string-join(('bmtnid', 'label', 'contributorid', 'byline', 'contributionid', 'title'), ','), codepoints-to-string(10)),
+    for $byline in $bylines
+        let $contributorid := 
+            if ($byline/ancestor::mods:name/@authority = 'viaf')
+                then xs:string($byline/ancestor::mods:name/@valueURI)
+            else ()
+        let $constituentid := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/@ID)
+        let $title := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/mods:titleInfo[1])
+        return
+            concat(string-join(($issueid, $issue-label, $contributorid, xs:string($byline), $constituentid, $title), ','), codepoints-to-string(10))
+    )
+ 
+};
+
+declare 
+ %rest: GET
+ %rest:path("/springs/contributors/{$issueid}")
+ %output:method("json")
+ %rest:produces("application/json")
+function springs:contributors-from-issue($issueid) {
+    let $issue := springs:_issue-mods($issueid)
+    let $bylines := springs:_bylines-from-issue($issueid)
+    let $issue-label := springs:_issue-label($issue)
+  
+    return
+        <contributors> {
+          for $byline in $bylines
+          let $contributorid := 
+            if ($byline/ancestor::mods:name/@authority = 'viaf')
+                then xs:string($byline/ancestor::mods:name/@valueURI)
+            else ()
+          let $constituentid := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/@ID)
+          let $title := xs:string($byline/ancestor::mods:relatedItem[@type='constituent'][1]/mods:titleInfo[1])
+          return
+            <contributor>
+                <bmtnid>{ $issueid }</bmtnid>
+                <label>{ $issue-label }</label>
+                <contributorid>{ $contributorid }</contributorid>
+                <byline>{ xs:string($byline) }</byline>
+                <contributionid>{ $constituentid }</contributionid>
+                <title> { $title }</title>
+            </contributor>
+        } </contributors>
+    
+};

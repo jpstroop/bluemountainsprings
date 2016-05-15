@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:mets="http://www.loc.gov/METS/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mix="http://www.loc.gov/mix/" xmlns:local="http://bluemountain/" xmlns:xlink="http://www.w3.org/1999/xlink" exclude-result-prefixes="#all" version="2.0">
+    <xsl:include href="mods.xsl"/>
     <xsl:output encoding="UTF-8" indent="yes" method="xml"/>
     <xsl:key name="imageKey" match="mets:fileGrp[@ID = 'IMGGRP']/mets:file" use="@ID"/>
+    <xsl:key name="image-by-group" match="mets:fileGrp[@ID = 'IMGGRP']/mets:file" use="@GROUPID"/>
+    <xsl:key name="div-by-dmdid" match="mets:div" use="@DMDID"/>
+    <xsl:key name="alto-file" match="mets:fileGrp[@ID='ALTOGRP']/mets:file" use="@ID"/>
     <xsl:key name="techMD" match="mets:techMD" use="@ID"/>
-    <xsl:variable name="baseURI">http://bluemountain.princeton.edu/api/presentation</xsl:variable>
+    <xsl:param name="baseURI">http://bluemountain.princeton.edu/iiif</xsl:param><!-- default value; real value is passed in -->
+    <xsl:variable name="iiif-context">http://iiif.io/api/image/2/context.json</xsl:variable>
     <xsl:variable name="bmtnid">
-        <xsl:value-of select="                 substring-after(                 /mets:mets/mets:dmdSec/mets:mdWrap[@MDTYPE = 'MODS']/mets:xmlData/mods:mods/mods:identifier[@type = 'bmtn'],                 'urn:PUL:bluemountain:')"/>
+        <xsl:value-of select="substring-after(/mets:mets/mets:dmdSec/mets:mdWrap[@MDTYPE = 'MODS']/mets:xmlData/mods:mods/mods:identifier[@type = 'bmtn'],'urn:PUL:bluemountain:')"/>
     </xsl:variable>
     <xsl:function name="local:file-path">
         <xsl:param name="fileURI"/>
@@ -15,42 +20,105 @@
         <xsl:variable name="base">bluemountain/astore%2Fperiodicals</xsl:variable>
         <xsl:variable name="path" select="substring-after($fileURI, 'file:///usr/share/BlueMountain/astore/periodicals/')"/>
         <xsl:value-of select="concat($protocol, $host, '/', $service, '/', $base, '/', $path)"/>
-    </xsl:function><!-- A hack to get the image file associated with a div.
-        Because there is no explicit attribute for it,
-        Assume it is the area without a BEGIN attribute.
-    -->
+    </xsl:function>
+    <xsl:template match="mods:mods" mode="metadata">
+        <map>
+            <string key="title">
+                <xsl:value-of select="mods:use-title(., 'full')"/>
+            </string>
+        </map>
+        <map>
+            <string key="display-date">
+                <xsl:value-of select="mods:display-date(.)"/>
+            </string>
+        </map>
+        <map>
+            <string key="detail">
+                <xsl:apply-templates select="mods:part/mods:detail"/>
+            </string>
+        </map>
+        <map>
+            <string key="part">
+                <xsl:apply-templates select="mods:part"/>
+            </string>
+        </map>
+    </xsl:template>
+    <xsl:template match="mods:mods" mode="ranges">
+        <map>
+            <string key="label">Table of Contents</string>
+            <string key="@type">sc:Range</string>
+            <string key="@id">
+                <xsl:value-of select="string-join(($baseURI, $bmtnid, 'range', 'toc'), '/')"/>
+            </string>
+            <array key="canvases">
+                <xsl:for-each select="ancestor::mets:mets/mets:fileSec/mets:fileGrp[@USE='Images']/mets:file/@GROUPID">
+                    <string>
+                        <xsl:value-of select="string-join(($baseURI, $bmtnid, 'canvas', current()), '/')"/>
+                    </string>
+                </xsl:for-each>
+            </array>
+        </map>
+        <xsl:apply-templates select="mods:relatedItem[@type='constituent']" mode="#current"/>
+    </xsl:template>
+    <xsl:template match="mods:relatedItem[@type='constituent']" mode="ranges">
+        <map>
+            <string key="@type">sc:Range</string>
+            <string key="@id">
+                <xsl:value-of select="string-join(($baseURI, $bmtnid, 'range', @ID), '/')"/>
+            </string>
+            <string key="label">
+                <xsl:value-of select="mods:use-title(., 'full')"/>
+            </string>
+            <string key="within">
+                <xsl:value-of select="string-join(($baseURI, $bmtnid, 'range', 'toc'), '/')"/>
+            </string>
+            <array key="canvases">
+                <xsl:for-each select="key('div-by-dmdid', @ID)//mets:area/@FILEID">
+                    <xsl:variable name="groupid" select="key('alto-file', .)/@GROUPID"/>
+                    <string>
+                        <xsl:value-of select="string-join(($baseURI, $bmtnid, 'canvas', $groupid), '/')"/>
+                    </string>
+                </xsl:for-each>
+            </array>
+            <array key="members">
+                <xsl:for-each select="key('div-by-dmdid', @ID)//mets:area/@FILEID">
+                    <xsl:variable name="groupid" select="key('alto-file', .)/@GROUPID"/>
+                    <string>
+                        <xsl:value-of select="string-join(($baseURI, $bmtnid, 'canvas', $groupid), '/')"/>
+                    </string>
+                </xsl:for-each>
+            </array>
+        </map>
+    </xsl:template>
     <xsl:template name="metadata">
         <xsl:param name="metsrec" as="node()"/>
-        <array key="metadata"/>
+        <array key="metadata">
+            <xsl:apply-templates select="$metsrec//mods:mods" mode="metadata"/>
+        </array>
     </xsl:template>
     <xsl:template name="description">
         <xsl:param name="metsrec" as="node()"/>
         <string key="description">a description</string>
     </xsl:template>
     <xsl:template name="license">
-        <xsl:param name="metsrec" as="node()">
-            <string key="license">a license</string>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <string key="license">a license</string>
     </xsl:template>
     <xsl:template name="attribution">
-        <xsl:param name="metsrec" as="node()">
-            <string key="attribution">an attributio</string>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <string key="attribution">Provided by the Blue Mountain Project at Princeton University</string>
     </xsl:template>
     <xsl:template name="service-manifest">
-        <xsl:param name="metsrec" as="node()">
-            <map key="service"/>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <map key="service"/>
     </xsl:template>
     <xsl:template name="seeAlso">
-        <xsl:param name="metsrec" as="node()">
-            <map key="seeAlso"/>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <map key="seeAlso"/>
     </xsl:template>
     <xsl:template name="within">
-        <xsl:param name="metsrec" as="node()">
-            <string key="within">within URI</string>
-        </xsl:param>
+        <xsl:param name="metsrec" as="node()"/>
+        <string key="within">within URI</string>
     </xsl:template>
     <xsl:template name="sequences">
         <xsl:param name="metsrec" as="node()"/>
@@ -77,7 +145,9 @@
     </xsl:template>
     <xsl:template name="structures">
         <xsl:param name="metsrec" as="node()"/>
-        <array key="structures"/>
+        <array key="structures">
+            <xsl:apply-templates select="$metsrec//mods:mods" mode="ranges"/>
+        </array>
     </xsl:template>
     <xsl:template name="canvases">
         <xsl:param name="metsrec" as="node()"/>
@@ -95,7 +165,7 @@
         <xsl:variable name="image-fileid" select="mets:fptr//mets:area[not(@BEGIN)]/@FILEID"/>
         <xsl:variable name="image-file" select="key('imageKey', $image-fileid)"/>
         <xsl:variable name="canvasid">
-            <xsl:value-of select="string-join(($baseURI, $bmtnid, 'canvas', @ID), '/')"/>
+            <xsl:value-of select="string-join(($baseURI, $bmtnid, 'canvas', $image-file/@GROUPID), '/')"/>
         </xsl:variable>
         <map>
             <string key="@type">sc:Canvas</string>
@@ -133,15 +203,19 @@
             <string key="motivation">sc:painting</string>
             <map key="resource">
                 <string key="@id">
-                    <xsl:value-of select="local:file-path(mets:FLocat/@xlink:href)"/>
+                    <xsl:value-of select="concat(local:file-path(mets:FLocat/@xlink:href), '/full/!200,200/0/default.jpg')"/>
                 </string>
                 <string key="@type">dctypes:Image</string>
                 <string key="format">
                     <xsl:value-of select="@MIMETYPE"/>
                 </string>
                 <map key="service">
-                    <string key="@context">http://iiif.io/api/image/2/context.json</string>
-                    <string key="@id">http://libimages.princeton.edu/loris2</string>
+                    <string key="@context">
+                        <xsl:value-of select="$iiif-context"/>
+                    </string>
+                    <string key="@id">
+                        <xsl:value-of select="local:file-path(mets:FLocat/@xlink:href)"/>
+                    </string>
                     <string key="profile">http://iiif.io/api/image/2/level1.json</string>
                 </map>
                 <number key="height">
@@ -158,13 +232,17 @@
     </xsl:template>
     <xsl:template match="mets:mets">
         <map>
-            <string key="@context">http://iiif.io/api/presentation/2/context.json</string>
+            <string key="@context">
+                <xsl:value-of select="$iiif-context"/>
+            </string>
             <string key="@type">sc:Manifest</string>
             <string key="@id">
                 <xsl:value-of select="string-join(($baseURI, $bmtnid, 'manifest'), '/')"/>
             </string>
             <string key="label">
-                <xsl:value-of select="$bmtnid"/>
+                <xsl:apply-templates select="mets:dmdSec/mets:mdWrap/mets:xmlData/mods:mods/mods:titleInfo[1]"/>
+                <xsl:text>, </xsl:text>
+                <xsl:apply-templates select="mets:dmdSec/mets:mdWrap/mets:xmlData/mods:mods/mods:part"/>
             </string>
             <xsl:call-template name="metadata">
                 <xsl:with-param name="metsrec" select="current()"/>
