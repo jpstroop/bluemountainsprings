@@ -15,7 +15,7 @@ declare namespace mets="http://www.loc.gov/METS/";
 declare namespace xlink="http://www.w3.org/1999/xlink";
 declare namespace tei="http://www.tei-c.org/ns/1.0";
 
-declare variable $springs:data-root        as xs:string { "/db/bmtn-data" };
+declare variable $springs:data-root       as xs:string { "/db/bmtn-data" };
 declare variable $springs:metadata        as xs:string { $springs:data-root || "/metadata" };
 declare variable $springs:transcriptions  as xs:string { $springs:data-root || "/transcriptions" };
 
@@ -307,7 +307,17 @@ function springs:constituent-plaintext($issueid, $constid) {
     let $issue := springs:_issue($issueid)
     let $constituent := $issue//tei:div[@corresp = $constid]
     let $xsl := doc($config:app-root || "/resources/xsl/tei2txt.xsl")
-    return transform:transform($constituent, $xsl, ())
+    return 
+    (
+        <rest:response>
+            <http:response>
+                <http:header name="Content-Type" value="text/plain"/>
+                <http:header name="Access-Control-Allow-Origin" value="*"/>
+            </http:response>
+        </rest:response>,
+
+    transform:transform($constituent, $xsl, ())
+    )
 };
 
 declare
@@ -344,63 +354,6 @@ declare function springs:constituents-with-byline($byline as xs:string)
 as element()*
 {
     collection($config:transcriptions)//tei:relatedItem[ft:query(.//tei:persName, $byline)]
-};
-
-
-declare
- %rest:GET
- %rest:path("/springs/iiif/{$issueid}/manifest.xml")
-function springs:mets-to-manifest-xml($issueid) {
-    let $issue := springs:_issue-mods($issueid)
-    let $baseURI := $config:springs-root || '/iiif'
-    let $xsl := doc($config:app-root || "/resources/xsl/bmtn-manifest.xsl")
-    return transform:transform($issue/ancestor::mets:mets, $xsl,             <parameters>
-                <param name="baseURI" value="{ $baseURI }"/>
-            </parameters>)
-};
-
-declare
- %rest:GET
- %rest:path("/springs/iiif/{$issueid}/manifest.json")
- %output:method("text")
- %rest:produces("application/json")
-function springs:mets-to-manifest-json($issueid) {
-    let $manifest-xml := springs:mets-to-manifest-xml($issueid)
-    let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
-    
-    return 
-    (
-        <rest:response>
-            <http:response>
-                <http:header name="Content-Type" value="application/json"/>
-                <http:header name="Access-Control-Allow-Origin" value="*"/>
-            </http:response>
-        </rest:response>,
-    
-    transform:transform($manifest-xml, $xsl, ())
-    )
-};
-
-declare
- %rest:GET
- %rest:path("/springs/iiif/{$issueid}/manifest")
- %output:method("text")
- %rest:produces("application/json")
-function springs:mets-to-manifest-json($issueid) {
-    let $manifest-xml := springs:mets-to-manifest-xml($issueid)
-    let $xsl := doc($config:app-root || "/resources/xsl/xml2json.xsl")
-    
-    return 
-    (
-        <rest:response>
-            <http:response>
-                <http:header name="Content-Type" value="application/json"/>
-                <http:header name="Access-Control-Allow-Origin" value="*"/>
-            </http:response>
-        </rest:response>,
-    
-    transform:transform($manifest-xml, $xsl, ())
-    )
 };
 
 
