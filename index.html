@@ -5,7 +5,7 @@
     </header>
     <section>
         <header>
-            <h2>Documentation</h2>
+            <h2>Springs</h2>
         </header>
         <div class="resource">
             <header>
@@ -54,15 +54,15 @@
                 <h3>springs/issues/{bmtnid}</h3>
             </header>
             <p>The magazine issue with id <i>bmtnid</i>.</p>
+            <dl>
+                <dt>application/mods+xml</dt>
+                <dd>curl -H"Accept:application/mods+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
+                <dt>application/rdf+xml</dt>
+                <dd>curl -H"Accept:application/rdf+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
+                <dt>application/tei+xml</dt>
+                <dd>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
+            </dl>
         </div>
-        <dl>
-            <dt>application/mods+xml</dt>
-            <dd>curl -H"Accept:application/mods+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
-            <dt>application/rdf+xml</dt>
-            <dd>curl -H"Accept:application/rdf+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
-            <dt>application/tei+xml</dt>
-            <dd>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/issues/bmtnaap_1921-11_01</dd>
-        </dl>
         <div class="resource">
             <header>
                 <h3>springs/constituent/{$issueid}/{$constid}</h3>
@@ -95,6 +95,22 @@
             <ul>
                 <li>curl -H"Accept:application/tei+xml" http://HOST/restxq/springs/constituents?byline=Tzara</li>
             </ul>
+        </div>
+    </section>
+    <section>
+        <header>
+            <h2>IIIF Presentation API</h2>
+        </header>
+        <div class="resource">
+            <header>
+                <h3>iiif/collection/top</h3>
+                <p>Set of Blue Mountain magazine titles as a IIIF collection</p>
+            </header>
+        </div>
+        <div class="resource">
+            <header>
+                <h3>iiif/collection/{bmtnid}</h3>
+            </header>
         </div>
         <div class="resource">
             <header>
