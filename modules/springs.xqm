@@ -6,7 +6,7 @@ import module namespace request = "http://exist-db.org/xquery/request";
 import module namespace response = "http://exist-db.org/xquery/response";
 
 import module namespace rest = "http://exquery.org/ns/restxq" ;
-(:  declare namespace rest="http://exquery.org/ns/restxq"; :)
+
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
 declare namespace http = "http://expath.org/ns/http-client"; 
 
@@ -15,11 +15,36 @@ declare namespace mets="http://www.loc.gov/METS/";
 declare namespace xlink="http://www.w3.org/1999/xlink";
 declare namespace tei="http://www.tei-c.org/ns/1.0";
 
-declare variable $springs:data-root       as xs:string { "/db/bmtn-data" };
-declare variable $springs:metadata        as xs:string { $springs:data-root || "/metadata" };
-declare variable $springs:transcriptions  as xs:string { $springs:data-root || "/transcriptions" };
+declare function springs:_magazine-monogr($magazine as element())
+as element()
+{
+    $magazine/tei:teiHeader/tei:fileDesc/tei:sourceDesc/tei:biblStruct/tei:monogr
+};
 
+declare function springs:_magazine-title($magazine as element())
+as xs:string?
+{
+    let $title := springs:_magazine-monogr($magazine)/tei:title[@level='j']
+    let $nonSort := $title/tei:seg[@type='nonSort']
+    let $main := $title/tei:seg[@type='main']
+    let $sub  := $title/tei:seg[@type='sub']
+    let $titleString := string-join(($nonSort,$main), ' ')
+    return if ($sub) then $titleString || ': ' || $sub else $titleString
+};
 
+declare function springs:_magazine-date-start($magazine as element())
+as xs:string
+{
+    let $date := springs:_magazine-monogr($magazine)/tei:imprint/tei:date
+    return if ($date/@from) then $date/@from else $date/@when
+};
+
+declare function springs:_magazine-date-end($magazine as element())
+as xs:string
+{
+    let $date := springs:_magazine-monogr($magazine)/tei:imprint/tei:date
+    return if ($date/@to) then $date/@to else $date/@when
+};
 
 declare function springs:_issue($issueid as xs:string)
 as element()
@@ -34,52 +59,71 @@ as element()
     return $issue    
 };
 
-declare
-  %rest:GET
-   %rest:path("/springs/serial_works")
-  %output:method("json")
-function springs:serial-works() {
-  <serial_works>
-      {
-          let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
-          for $rec in $recs
-          return <serial_work>
-                    <title>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</title>
-                    <id>{ substring-after($rec//mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:') }</id>
-                 </serial_work>
-      }
-  </serial_works>
+declare function springs:_magazine($bmtnid as xs:string)
+{
+    collection($config:transcriptions)//tei:TEI[./tei:teiHeader/tei:pr/tei:publicationStmt/tei:idno[@type='bmtnid'] = $bmtnid]
+
 };
 
-declare function springs:_magazine($bmtnid as xs:string)
+declare function springs:_magazine-mods($bmtnid as xs:string)
 {
     let $identifier := concat('urn:PUL:bluemountain:', $bmtnid)
     let $titlerec := collection($config:metadata)//mods:identifier[@type='bmtn' and . = $identifier]/ancestor::mods:mods
     return $titlerec
 };
 
-declare
-  %rest:GET
-   %rest:path("/springs/magazines")
-  %output:method("json")
-function springs:magazines() {
-  <magazines>
-      {
-          let $recs := collection($config:metadata)//mods:genre[@authority='bmtn' and .='Periodicals-Title']/ancestor::mods:mods
-          for $rec in $recs
-          return <magazine>
-                    <primaryTitle>{ $rec/mods:titleInfo[1]/mods:title[1]/text() }</primaryTitle>
-                    <bmtnID>{ substring-after($rec//mods:identifier[@type='bmtn'], 'urn:PUL:bluemountain:') }</bmtnID>
+declare function springs:_magazines-tei() {
+    collection($config:transcriptions)//tei:TEI[./tei:teiHeader/tei:profileDesc/tei:textClass/tei:classCode = 300215389 ]
+};
 
-                 </magazine>
-      }
-  </magazines>
+declare
+ %rest:GET
+ %rest:path("/springs/magazines")
+ %output:method("text")
+ %rest:produces("text/csv")
+function springs:magazines-as-csv() {
+  let $mags := springs:_magazines-tei()
+  for $mag in $mags
+    let $bmtnid := $mag/tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid']
+    let $primaryTitle := springs:_magazine-title($mag)
+    let $primaryLanguage := $mag/tei:teiHeader/tei:profileDesc/tei:langUsage/tei:language[1]/@ident
+    let $startDate := springs:_magazine-date-start($mag)
+    let $endDate := springs:_magazine-date-end($mag)
+    let $uri := $config:springs-root || '/magazines/' || $bmtnid
+    return concat(string-join(($bmtnid,$primaryTitle,$primaryLanguage,$startDate,$endDate,$uri), ','), codepoints-to-string(10))
 };
 
 
 declare
+ %rest:GET
+ %rest:path("/springs/magazines")
+ %output:method("json")
+ %rest:produces("application/json")
+function springs:magazines-as-json() {
+    <magazines> {
+  let $mags := springs:_magazines-tei()
+  for $mag in $mags
+    let $bmtnid := $mag/tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid']
+    let $primaryTitle := springs:_magazine-title($mag)
+    let $primaryLanguage := $mag/tei:teiHeader/tei:profileDesc/tei:langUsage/tei:language[1]/@ident
+    let $startDate := springs:_magazine-date-start($mag)
+    let $endDate := springs:_magazine-date-end($mag)
+    let $uri := $config:springs-root || '/magazines/' || $bmtnid
+    return 
+        <magazine>
+            <bmtnid>{ $bmtnid }</bmtnid>
+            <primaryTitle>{ $primaryTitle }</primaryTitle>
+            <primaryLanguage>{ $primaryLanguage }</primaryLanguage>
+            <startDate>{ $startDate }</startDate>
+            <endDate>{ $endDate }</endDate>
+            <uri>{ $uri }</uri>
+        </magazine>
+    } </magazines>
+};
+
+declare
   %rest:GET
-  %rest:path("/springs/magazine/{$bmtnid}")
+  %rest:path("/springs/magazines/{$bmtnid}")
   %output:method("json")
 function springs:magazine($bmtnid) {
     let $titlerec := springs:_magazine($bmtnid)
@@ -120,50 +164,6 @@ function springs:magazine($bmtnid) {
                 }
 
               </magazine>
-};
-
-declare
-  %rest:GET
-  %rest:path("/springs/serial_works/{$bmtnid}")
-  %output:method("json")
-function springs:serial-work($bmtnid) {
-  <serial_works>
-      {
-          let $ids := collection($config:metadata)//mods:identifier[. = 'urn:PUL:bluemountain:' || $bmtnid]
-          return 
-              <serial_work>
-                <title>{ $ids[1]/ancestor::mods:mods/mods:titleInfo[1]/mods:title[1]/text() }</title>
-                <id>{ $bmtnid }</id>
-              </serial_work>
-      }
-  </serial_works>
-};
-
-declare
-  %rest:GET
-  %rest:path("/springs/serial_works/{$bmtnid}/publication_works")
-function springs:publication_works($bmtnid) {
-    let $magazine := collection($config:metadata)//mods:mods[mods:identifer[@type='bmtn'] = 'urn:PUL:bluemountain:' || $bmtnid]
-    let $title    := $magazine/mods:titleInfo[1]/mods:title[1]/text()
-    let $issues   := collection($config:metadata)//mods:mods[mods:relatedItem[@type='host']/@xlink:href = 'urn:PUL:bluemountain:' || $bmtnid]
-    return
-        <serial_work>
-            <title>{ $title }</title>
-            <id>{ $bmtnid }</id>
-            <issues>
-                {
-                    for $issue in $issues
-                    let $id   := $issue//mods:identifier[@type='bmtn']/text() 
-                    let $date := $issue/mods:originInfo/mods:dateIssued[@keyDate='yes']/text()
-                    return
-                        <issue>
-                            <id>{ $id }</id>
-                            <date>{ $date }</date>
-                            <fluff/>
-                        </issue>
-                }
-            </issues>
-        </serial_work>
 };
 
 declare
