@@ -307,9 +307,10 @@ function springs:constituents($bmtnid) {
 declare
  %rest:GET
  %rest:path("springs/constituents")
- %rest:query-param("byline", "{$byline}")
+ %rest:query-param("byline", "{$byline}","")
+ %rest:query-param("viafid", "{$viafid}","")
  %rest:produces("application/tei+xml")
-function springs:constituents-by-byline-tei($byline) {
+function springs:constituents-by-byline-tei($byline as xs:string?, $viafid as xs:string?) {
     let $constituents := springs:constituents-with-byline($byline)
     let $xsl := doc($config:app-root || "/resources/xsl/constituent-to-tei.xsl")
     let $constituents-old := collection($config:transcriptions)//tei:relatedItem[@type='constituent' and ft:query(.//tei:persName, $byline)]
