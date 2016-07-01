@@ -1,8 +1,9 @@
 # Blue Mountain Springs: A RESTful API to Blue Mountain
 
-Requires eXist-db 3.0 or higher.
+For more documentation about the project, see the wiki for this repository: https://github.com/Princeton-CDH/bluemountainsprings/wiki
 
-To install:
+## To Install
+Requires eXist-db 3.0 or higher.
 
 
   * clone the repository
