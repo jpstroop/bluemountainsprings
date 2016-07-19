@@ -1,0 +1,69 @@
+# Example YAML to get you started quickly.
+# Be aware that YAML has indentation based scoping.
+# Code completion support is available so start typing for available options.
+swagger: '2.0'
+
+# This is your document metadata
+info:
+  version: "0.1.0"
+  title: Blue Mountain Springs
+
+# Describe your paths here
+paths:
+  # This is a path endpoint. Change it.
+  /springs:
+    # This is a HTTP operation
+    get:
+      # Describe this verb here. Note: you can use markdown
+      description: |
+        The top level of the service. The list of available resources.
+      # This is array of GET operation parameters:
+
+      # Expected responses for this operation:
+      responses:
+        # Response code
+        200:
+          description: Successful response
+          # A schema describing your response object.
+          # Use JSON Schema format
+          schema:
+            title: ArrayofResources
+            type: array
+            items:
+              title: Resource
+              type: object
+              properties:
+                name:
+                  type: string
+                single:
+                  type: boolean
+  # Magazine spring
+  /springs/magazines:
+    get:
+
+      description:
+        The set of magazines
+      responses:
+        200:
+          description: Successful response
+
+          schema:
+            title: ArrayofMagazines
+            type: array
+            items:
+              type: object
+              properties:
+                bmtnid:
+                  type: string
+                primaryTitle:
+                  type: string
+                primaryLanguage:
+                  type: string
+                startDate:
+                  type: string
+                endDate:
+                  type: string
+                uri:
+                  type: string
+                  
+            

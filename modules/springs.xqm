@@ -113,8 +113,70 @@ as element()+
     return $respStmts/tei:persName
 };
 
+(:::::::::::::::::::  SPRINGS (TOP) ::::::::::::::::)
+declare
+ %rest:GET
+ %rest:path("/springs")
+ %output:method("json")
+ %rest:produces("application/json")
+function springs:existing-resources() {
+<resources>
+    <resource>
+        <path>/springs/magazines</path>
+    </resource>
+    <resource>
+        <path>/springs/magazines/bmtnid</path>
+    </resource>
+    <resource>
+        <path>/springs/issues/bmtnid</path>
+    </resource>
+    <resource>
+        <path>/springs/constituents/bmtnid</path>
+    </resource>
+        <resource>
+        <path>/springs/constituent/bmtnid/constituentid</path>
+    </resource>
+    <resource>
+        <path>/springs/text/bmtnid</path>
+    </resource>
+        <resource>
+        <path>/springs/constituent/bmtnid/constituentid</path>
+    </resource>
+        <resource>
+        <path>/springs/contributors/bmtnid</path>
+    </resource>
+</resources>
+};
+
 
 (:::::::::::::::::::  MAGAZINES ::::::::::::::::)
+declare
+ %rest:GET
+ %rest:path("/springs/magazines")
+ %output:method("json")
+ %rest:produces("application/json")
+function springs:magazines-as-json() {
+    <magazines> {
+  let $mags := springs:_magazines-tei()
+  for $mag in $mags
+    let $bmtnid := xs:string($mag/tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid'])
+    let $primaryTitle := springs:_magazine-title($mag)
+    let $primaryLanguage := xs:string($mag/tei:teiHeader/tei:profileDesc/tei:langUsage/tei:language[1]/@ident)
+    let $startDate := springs:_magazine-date-start($mag)
+    let $endDate := springs:_magazine-date-end($mag)
+    let $uri := $config:springs-root || '/magazines/' || $bmtnid
+    return 
+        <magazine>
+            <bmtnid>{ $bmtnid }</bmtnid>
+            <primaryTitle>{ $primaryTitle }</primaryTitle>
+            <primaryLanguage>{ $primaryLanguage }</primaryLanguage>
+            <startDate>{ $startDate }</startDate>
+            <endDate>{ $endDate }</endDate>
+            <uri>{ $uri }</uri>
+        </magazine>
+    } </magazines>
+};
+
 declare
  %rest:GET
  %rest:path("/springs/magazines")
@@ -133,32 +195,6 @@ function springs:magazines-as-csv() {
 };
 
 
-declare
- %rest:GET
- %rest:path("/springs/magazines")
- %output:method("json")
- %rest:produces("application/json")
-function springs:magazines-as-json() {
-    <magazines> {
-  let $mags := springs:_magazines-tei()
-  for $mag in $mags
-    let $bmtnid := $mag/tei:teiHeader/tei:fileDesc/tei:publicationStmt/tei:idno[@type='bmtnid']
-    let $primaryTitle := springs:_magazine-title($mag)
-    let $primaryLanguage := $mag/tei:teiHeader/tei:profileDesc/tei:langUsage/tei:language[1]/@ident
-    let $startDate := springs:_magazine-date-start($mag)
-    let $endDate := springs:_magazine-date-end($mag)
-    let $uri := $config:springs-root || '/magazines/' || $bmtnid
-    return 
-        <magazine>
-            <bmtnid>{ $bmtnid }</bmtnid>
-            <primaryTitle>{ $primaryTitle }</primaryTitle>
-            <primaryLanguage>{ $primaryLanguage }</primaryLanguage>
-            <startDate>{ $startDate }</startDate>
-            <endDate>{ $endDate }</endDate>
-            <uri>{ $uri }</uri>
-        </magazine>
-    } </magazines>
-};
 
 declare
   %rest:GET
@@ -304,14 +340,22 @@ function springs:constituents($bmtnid) {
         </issue>
 };
 
+
+
 declare
  %rest:GET
  %rest:path("springs/constituents")
  %rest:query-param("byline", "{$byline}","")
  %rest:query-param("viafid", "{$viafid}","")
  %rest:produces("application/tei+xml")
-function springs:constituents-by-byline-tei($byline as xs:string?, $viafid as xs:string?) {
-    let $constituents := springs:constituents-with-byline($byline)
+function springs:constituents-by-byline-tei($byline, $viafid) {
+    let $constituents := 
+        if ($byline) then 
+            springs:constituents-with-byline($byline)
+        else if ($viafid) then
+        collection($config:transcriptions)//tei:relatedItem[@type='constituent' and contains(.//tei:persName/@ref, $viafid)]
+        else ()
+    
     let $xsl := doc($config:app-root || "/resources/xsl/constituent-to-tei.xsl")
     let $constituents-old := collection($config:transcriptions)//tei:relatedItem[@type='constituent' and ft:query(.//tei:persName, $byline)]
     return
@@ -327,6 +371,7 @@ function springs:constituents-by-byline-tei($byline as xs:string?, $viafid as xs
                             Generated { count($constituents) } hits from { $config:transcriptions }
                         </p>
                     </publicationStmt>
+                    <sourceDesc><p>Blue Mountain Project</p></sourceDesc>
                 </fileDesc>
             </teiHeader>
             {
@@ -342,9 +387,14 @@ function springs:constituents-by-byline-tei($byline as xs:string?, $viafid as xs
                                         { $hit/tei:biblStruct }
                                     </title>
                                 </titleStmt>
-                        
+                    <publicationStmt>
+                        <p>
+                            Later
+                        </p>
+                    </publicationStmt>
+                    <sourceDesc><p>Later</p></sourceDesc>
                             </fileDesc>
-                            
+       
                         </teiHeader>
                         <text>
                             <body>
@@ -451,6 +501,14 @@ declare function springs:contributors-from-issue-csv-mods($issueid) {
     )
 };
 
+declare function springs:_clean-string($string)
+{
+    let $cleaned := normalize-space($string)
+    let $cleaned := replace($cleaned, ',', '|')
+    
+    return $cleaned
+};
+
 declare function springs:_contributor-data-tei($issue)
 {
     let $issueid := xs:string($issue//tei:idno[@type='bmtnid'])
@@ -458,10 +516,10 @@ declare function springs:_contributor-data-tei($issue)
     let $contributions := $issue//tei:relatedItem[@type='constituent']
     for $contribution in $contributions
         let $constituentid := xs:string($contribution/@xml:id)
-        let $title := xs:string($contribution/tei:biblStruct/tei:analytic/tei:title[@level = 'a']/tei:seg[@type='main'][1])
+        let $title := springs:_clean-string(xs:string($contribution/tei:biblStruct/tei:analytic/tei:title[@level = 'a']/tei:seg[@type='main'][1]))
         let $respStmts := $contribution//tei:respStmt
         for $stmt in $respStmts
-            let $byline := $stmt/tei:persName/text()
+            let $byline := springs:_clean-string($stmt/tei:persName/text())
             let $contributorid := if ($stmt/tei:persName/@ref) then xs:string($stmt/tei:persName/@ref) else " "
             return
              concat(string-join(($issueid, $issuelabel,$contributorid,$byline,$constituentid,$title), ','), codepoints-to-string(10))
