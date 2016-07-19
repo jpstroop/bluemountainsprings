@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/Princeton-CDH/bluemountainsprings.png?label=ready&title=Ready)](https://waffle.io/Princeton-CDH/bluemountainsprings)
 # Blue Mountain Springs: A RESTful API to Blue Mountain
 
 For more documentation about the project, see the wiki for this repository: https://github.com/Princeton-CDH/bluemountainsprings/wiki
