@@ -7,12 +7,10 @@
 
 # Site settings
 title: Blue Mountain Springs
-email: your-email@domain.com
+email: cwulfman@princeton.edu
 description: > # this means to ignore newlines until "baseurl:"
-  Project page for Blue Mountain Springs, a project sponsored by the Center for
-  Digital Humanities at Princeton University.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://yourdomain.com" # the base hostname & protocol for your site
+url: "" # the base hostname & protocol for your site
 
 # Build settings
 markdown: kramdown
