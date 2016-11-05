@@ -13,7 +13,7 @@ This is a page of sample uses. Lorem Ipsum.
 Begin by retrieving a TEI corpus of all the constituents authored by Tzara:
 
 ``` {.bash}
-curl http://localhost:8080/exist/restxq/springs/constituents?byline="Tzara" > /tmp/tzara.tei.xml
+curl -H'Accept:application/tei+xml' http://libserv14-dev.princeton.edu:8080/exist/restxq/springs/constituents?byline="Tzara" > /tmp/tzara.tei.xml
 ``` 
 
 
@@ -27,8 +27,9 @@ Your corpus should open in Voyant's main window. Explore!
 *Scenario:* You want to look at patterns of co-occurance in *Broom*.
 
 ``` {.bash}
-curl http://localhost:8080/exist/restxq/springs/contributors/bmtnaap -o /tmp/broom.csv
+curl http://libserv14-dev.princeton.edu:8080/exist/restxq/springs/contributors/bmtnaap -o /tmp/broom.csv
 ``` 
+  * You may wish to clean up stray punctuation and the like with Open Refine.
 
   * Go to [Palladio](http://hdlab.stanford.edu/palladio/)
   * Import your file by dragging and dropping it into the data-entry space and clicking Load
