@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tei="http://www.tei-c.org/ns/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xd="http://www.oxygenxml.com/ns/doc/xsl" exclude-result-prefixes="xs xd tei" version="2.0">
+<xsl:stylesheet xmlns:xd="http://www.oxygenxml.com/ns/doc/xsl" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tei="http://www.tei-c.org/ns/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xs xd tei" version="2.0">
     <xd:doc scope="stylesheet">
         <xd:desc>
             <xd:p>
@@ -9,7 +9,7 @@
             <xd:p/>
         </xd:desc>
     </xd:doc>
-    <xsl:output indent="yes"/>
+    <xsl:output indent="no"/>
     <xsl:param name="springs-root"/>
     <xsl:template match="/">
         <xsl:variable name="bmtnid">
@@ -27,7 +27,7 @@
     <xsl:template match="tei:monogr">
         <xsl:param name="bmtnid"/>
         <title>
-            <xsl:value-of select="normalize-space(tei:title)"/>
+            <xsl:value-of select="normalize-space(tei:title[1])"/>
         </title>
         <xsl:apply-templates select="tei:imprint"/>
         <editors>
@@ -50,7 +50,15 @@
             </xsl:for-each>
         </contributors>
         <xsl:for-each-group select="ancestor::tei:biblStruct/tei:relatedItem[@type='constituent']" group-by="tei:biblStruct//tei:classCode[@scheme = 'CCS']">
-            <xsl:element name="{current-grouping-key()}">
+            <xsl:variable name="groupName">
+                <xsl:choose>
+                    <xsl:when test="current-grouping-key()">
+                        <xsl:value-of select="current-grouping-key()"/>
+                    </xsl:when>
+                    <xsl:otherwise>Unspecified</xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:element name="{ $groupName }">
                 <xsl:for-each select="current-group()">
                     <contribution>
                         <id>
@@ -60,7 +68,7 @@
                             <xsl:value-of select="string-join(($springs-root,'constituent',$bmtnid,xs:string(@xml:id)), '/')"/>
                         </uri>
                         <title>
-                            <xsl:value-of select="normalize-space(tei:biblStruct/tei:analytic/tei:title)"/>
+                            <xsl:value-of select="normalize-space(tei:biblStruct/tei:analytic/tei:title[1])"/>
                         </title>
                     </contribution>
                 </xsl:for-each>
