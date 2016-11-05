@@ -15,6 +15,7 @@ permalink: /api/
     <li><a href="#constituents">Constituents</a></li>
     <li><a href="#constituent">Constituent</a></li>
     <li><a href="#contributors">Contributors</a></li>
+    <li><a href="#contributions">Contributions</a></li>
   </ol>
 </nav>
 <section id="overview">
@@ -292,7 +293,37 @@ permalink: /api/
       </tr>
     </tbody>
   </table>
+ </section>
+
+ <section id="contributors">
+  <header>
+    <h2>Contributions</h2>
+  </header>
+  <p>Get representation of contributions to a magazine having a
+  particular byline.  If the request is for CSV, returns a table of
+  values; if the request is for TEI, returns a TEI Corpus.</p>
 
 
-
+      <table>
+    <caption>Request</caption>
+    <thead>
+      <tr>
+	<th>Method</th>
+	<th>Accept Header</th>
+	<th>URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+	<td>GET</td>
+	<td>text/csv</td>
+	<td>contributions?byline=</td>
+      </tr>
+      <tr>
+	<td>&#x3003;</td>
+	<td>application/tei+xml</td>
+	<td>&#x3003;</td>
+      </tr>
+    </tbody>
+  </table>
  </section>
