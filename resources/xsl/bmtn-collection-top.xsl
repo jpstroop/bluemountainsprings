@@ -9,7 +9,7 @@
             <xd:p/>
         </xd:desc>
     </xd:doc>
-    <xsl:param name="baseURI">http://localhost:8080/exist/restxq/iiif</xsl:param>
+    <xsl:param name="baseURI">http://bluemountain.princeton.edu/exist/restxq/iiif</xsl:param>
     <xsl:template match="/">
         <xsl:apply-templates/>
     </xsl:template>

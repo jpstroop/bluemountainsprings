@@ -38,8 +38,8 @@
     <xsl:function name="mods:display-date">
         <xsl:param name="modsRec"/>
         <xsl:choose>
-            <xsl:when test="$modsRec/mods:originInfo/mods:dateIssued[@point='start'] and             $modsRec/mods:originInfo/mods:dateIssued[@point='end']">
-                <xsl:value-of select="string-join(                     ($modsRec/mods:originInfo/mods:dateIssued[@point='start'],                 $modsRec/mods:originInfo/mods:dateIssued[@point='end'] ), '-')"/>
+            <xsl:when test="$modsRec/mods:originInfo/mods:dateIssued[@point='start'] and $modsRec/mods:originInfo/mods:dateIssued[@point='end']">
+                <xsl:value-of select="string-join(($modsRec/mods:originInfo/mods:dateIssued[@point='start'], $modsRec/mods:originInfo/mods:dateIssued[@point='end'] ), '-')"/>
             </xsl:when>
             <xsl:when test="$modsRec/mods:originInfo/mods:dateIssued[@point='start']">
                 <xsl:value-of select="concat($modsRec/mods:originInfo/mods:dateIssued[@point='start'], '-')"/>
