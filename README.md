@@ -1,3 +1,5 @@
+Not in use! This is a fork that allows me to make a PR so that I can annotate the source code. -@jpstroop
+
 [![Stories in Ready](https://badge.waffle.io/Princeton-CDH/bluemountainsprings.png?label=ready&title=Ready)](https://waffle.io/Princeton-CDH/bluemountainsprings)
 # Blue Mountain Springs: A RESTful API to Blue Mountain
 
